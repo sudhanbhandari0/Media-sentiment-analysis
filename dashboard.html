@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Real‑Time Dashboard</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    table { border-collapse: collapse; margin-bottom: 2rem; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; }
+    th { background: #f0f0f0; }
+  </style>
+</head>
+<body>
+
+  <h1>Live Metrics</h1>
+
+  <table>
+    <thead>
+      <tr><th>Sentiment</th><th>Count</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>positive</td><td id="pos-count">–</td></tr>
+      <tr><td>negative</td><td id="neg-count">–</td></tr>
+    </tbody>
+  </table>
+
+  <table>
+    <thead>
+      <tr><th>Hashtag</th><th>Count</th></tr>
+    </thead>
+    <tbody id="hashtags-body">
+      <!-- inserted rows -->
+    </tbody>
+  </table>
+
+  <script>
+    const posEl = document.getElementById("pos-count");
+    const negEl = document.getElementById("neg-count");
+    const hashtagsBody = document.getElementById("hashtags-body");
+
+    // 1) Make sure to use the full URL to your FastAPI app
+    const es = new EventSource("http://localhost:8000/metrics/stream");
+
+    es.onmessage = e => {
+      console.log("SSE data:", e.data);   // <-- debug
+      const { sentiment, hashtags } = JSON.parse(e.data);
+
+      posEl.textContent = sentiment.positive ?? 0;
+      negEl.textContent = sentiment.negative ?? 0;
+
+      // rebuild the hashtag rows
+      hashtagsBody.innerHTML = "";
+      for (const [tag, count] of Object.entries(hashtags)) {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${tag}</td><td>${count}</td>`;
+        hashtagsBody.appendChild(row);
+      }
+    };
+
+    es.onerror = err => {
+      console.error("EventSource failed:", err);
+      es.close();
+    };
+  </script>
+
+</body>
+</html>
