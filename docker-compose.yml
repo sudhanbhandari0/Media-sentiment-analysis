@@ -1,0 +1,60 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis_container
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo_container
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  ingestor:
+    build:
+      context: ./ingestor
+      dockerfile: Dockerfile
+    container_name: ingestor_service
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+    volumes:
+      - ./ingestor/data/sample_posts.jsonl:/app/ingestor/data/sample_posts.jsonl:ro
+
+  processor:
+    build:
+      context: ./processor
+      dockerfile: Dockerfile
+    container_name: processor_service
+    depends_on:
+      - redis
+      - mongo
+    environment:
+      - REDIS_HOST=redis
+      - MONGO_URI=mongodb://mongo:27017/myLearningDB
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: api_service
+    depends_on:
+      - redis
+      - mongo
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - MONGO_URI=mongodb://mongo:27017/myLearningDB
+
+volumes:
+  redis_data:
+  mongo_data:

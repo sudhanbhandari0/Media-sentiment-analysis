@@ -3,7 +3,7 @@ from pymongo import MongoClient
 from typing import List, Dict
 from redis import Redis
 from fastapi.responses import StreamingResponse
-import json, asyncio
+import json, asyncio, os
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -15,14 +15,16 @@ app.add_middleware(
   allow_methods=["GET"],
   allow_headers=["*"],
 )
-
+REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017")
 # MongoDB setup
-mongo_client = MongoClient("mongodb://localhost:27017")
+
+mongo_client = MongoClient(MONGO_URI)
 db = mongo_client.myLearningDB
 posts_collection = db.posts
 
-redis_client = Redis(host='localhost', port=6379, decode_responses=True)
-
+redis_client = Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
 @app.get("/")
 def health():
     return {"status": "ok"}
